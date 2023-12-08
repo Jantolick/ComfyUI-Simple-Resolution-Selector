@@ -1,40 +1,39 @@
+import re
+
+SDXL = "SDXL"
+SD21 = "SD21"
+SD15 = "SD15"
+
 # Resolution presets
 BASE_RESOLUTIONS = [
-    (1024, 1024),
-    (704, 1408),
-    (704, 1344),
-    (768, 1344),
-    (768, 1280),
-    (832, 1216),
-    (832, 1152),
-    (896, 1152),
-    (896, 1088),
-    (960, 1088),
-    (960, 1024),
-    (1024, 960),
-    (1088, 960),
-    (1088, 896),
-    (1152, 896),
-    (1152, 832),
-    (1216, 832),
-    (1280, 768),
-    (1344, 768),
-    (1344, 704),
-    (1408, 704),
-    (1472, 704),
-    (1536, 640),
-    (1600, 640),
-    (1664, 576),
-    (1728, 576)
+    (1024, 1024, SDXL, "1:1"),
+    (640, 1536, SDXL, "5:12"),
+    (512, 512, SD15, "1:1"),
+    (768, 768, SD15, "1:1"),
+    (512, 768, SD15, "2:3"),
+    (768, 512, SD15, "3:2"),
+    (768, 1344, SDXL, "3:7"),
+    (256, 256, SD15, "1:1"),
+    (832, 1216, SDXL, "13:19"),
+    (512, 512, SD21, "1:1"),
+    (768, 768, SD21, "1:1"),
+    (768, 512, SD21, "3:2"),
+    (512, 768, SD21, "2:3"),    
+    (896, 1152, SDXL, "7:9"),    
+    (1152, 896, SDXL, "9:7"),
+    (1216, 832, SDXL, "19:13"),
+    (1344, 768, SDXL, "21:12"),    
+    (1536, 640, SDXL, "12:5"),    
 ]
 
 
-class ResolutionSelector:
+class SimpleResolutionSelector:
     """
     A node to provide a drop-down list of resolutions and returns two int values (width and height).
+    Filterable on base model type, resolution and/or ratio.
     """
 
-    def __init__(self):
+    def __init__(self):        
         pass
 
     @classmethod
@@ -43,14 +42,16 @@ class ResolutionSelector:
         Return a dictionary which contains config for all input fields.
         """
 
-        # Create a list of resolution strings for the drop-down menu
-        resolution_strings = [
-            f"{width} x {height}" for width, height in BASE_RESOLUTIONS]
+        # Sort the list by base model type, then width, then height, and finally ratio
+        sorted_array = sorted(BASE_RESOLUTIONS, key=lambda x: (x[2], x[0], x[1], x[3]))
 
+        # Create a list of resolution strings for the drop-down menu, filterable by base model type and ratio
+        resolution_strings = [
+            f"{name} {width} x {height} [{ratio}]" for width, height, name, ratio in sorted_array]
+        
         return {
             "required": {
-                "base_resolution": (resolution_strings,),
-                "base_adjustment": (["SDXL (None)", "SD21 (75%)", "SD15 (50%)"],),
+                "base_resolution": (resolution_strings,)
             }
         }
 
@@ -59,39 +60,32 @@ class ResolutionSelector:
     FUNCTION = "select_resolution"
     CATEGORY = 'utils'
 
-    def select_resolution(self, base_resolution, base_adjustment):
+    def select_resolution(self, base_resolution):
         """
-        Returns the width and height based on the selected resolution and adjustment.
+        Returns the width and height based on the selected resolution.
 
         Args:
-            base_resolution (str): Selected resolution in the format "width x height".
-            base_adjustment (str): Selected adjustment (resolution value reduction) based on SD version.
+            base_resolution (str): Selected resolution string.
 
         Returns:
             Tuple[int, int]: Adjusted width and height.
         """
-        try:
-            width, height = map(int, base_resolution.split(' x '))
+        try:            
+            matches = re.findall(r'\d+ x \d+', base_resolution.split('[')[0])[0].split('x')            
+            width, height = map(int, matches)
         except ValueError:
             raise ValueError("Invalid base_resolution format.")
-
-        adjustment_factors = {
-            "SDXL (None)": 1, "SD21 (75%)": 0.75, "SD15 (50%)": 0.5}
-        factor = adjustment_factors.get(base_adjustment)
-
-        if factor is None:
-            raise ValueError("Invalid base_adjustment value.")
-
-        width = int(width * factor)
-        height = int(height * factor)
+        
+        width = int(width)
+        height = int(height)
 
         return width, height
 
 
 NODE_CLASS_MAPPINGS = {
-    "ResolutionSelector": ResolutionSelector,
+    "SimpleResolutionSelector": SimpleResolutionSelector,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "ResolutionSelector": "Resolution Selector",
+    "SimpleResolutionSelector": "Simple Resolution Selector",
 }
