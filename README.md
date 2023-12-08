@@ -25,7 +25,7 @@ cd custom_nodes
 
 ```terminal
 # Clone the repo into custom_nodes
-git clone https://github.com/bradsec/ComfyUI_ResolutionSelector.git
+git clone https://github.com/Jantolick/ComfyUI_SelectResolution.git
 
 # Restart ComfyUI
 ```
